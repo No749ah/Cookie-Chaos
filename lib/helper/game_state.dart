@@ -18,7 +18,7 @@ class GameState extends ChangeNotifier {
 
   Future<void> initialize() async {
     await _fetchUser();
-    await _fetchPowerUps();
+    await fetchPowerUps();
     _startAlienGrowth();
   }
 
@@ -30,9 +30,16 @@ class GameState extends ChangeNotifier {
     }
   }
 
-  Future<void> _fetchPowerUps() async {
+  Future<List<PowerUp>> fetchPowerUps() async {
     List<Map<String, dynamic>> powerUpData = await _dbHelper.fetchPowerUps();
     _powerUps = powerUpData.map((data) => PowerUp.fromMap(data)).toList();
+    notifyListeners(); // Notify listeners after fetching power-ups
+    return _powerUps;
+  }
+
+  Future<void> updatePowerUpPurchaseCount(int id, int newCount) async {
+    await _dbHelper.updatePowerUpPurchaseCount(id, newCount);
+    await fetchPowerUps();
     notifyListeners();
   }
 
@@ -72,7 +79,9 @@ class GameState extends ChangeNotifier {
     double multiplier = 1.0;
     for (var powerUp in _powerUps) {
       if (powerUp.type == 'second') {
-        multiplier *= pow(powerUp.multiplier, powerUp.purchaseCount);
+        multiplier *= pow(1.3, powerUp.purchaseCount);
+      } else if (powerUp.type == 'multiplier') {
+        multiplier *= pow(1.1, powerUp.purchaseCount);
       }
     }
 
@@ -84,6 +93,8 @@ class GameState extends ChangeNotifier {
     for (var powerUp in _powerUps) {
       if (powerUp.type == 'click') {
         multiplier = _baseklickValue * pow(powerUp.multiplier, powerUp.purchaseCount);
+      } else if (powerUp.type == 'multiplier') {
+        multiplier *= pow(1.1, powerUp.purchaseCount);
       }
     }
     return multiplier;
@@ -94,6 +105,8 @@ class GameState extends ChangeNotifier {
       return pow(powerUp.multiplier, powerUp.purchaseCount)* _baseklickValue;
     } else if (powerUp.type == 'second') {
       return pow(powerUp.multiplier, powerUp.purchaseCount);
+    } else if (powerUp.type == 'multiplier') {
+      return pow(1.1, powerUp.purchaseCount);
     }
     return 1.0;
   }
@@ -121,6 +134,11 @@ class GameState extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  Future<void> updateUser(Map<String, dynamic> userMap) async {
+    await _dbHelper.updateUser(userMap);
+    notifyListeners(); // Notify listeners after updating the user
   }
 
   Future<void> purchasePowerUp(PowerUp powerUp) async {

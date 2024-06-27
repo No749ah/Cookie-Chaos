@@ -6,6 +6,7 @@ class PowerUp {
   final double multiplier;
   final double baseCost;
   int purchaseCount;
+  int is_purchasable;
 
   PowerUp({
     required this.id,
@@ -15,6 +16,7 @@ class PowerUp {
     required this.baseCost,
     required this.multiplier,
     this.purchaseCount = 0,
+    this.is_purchasable = 1,
   });
 
   factory PowerUp.fromMap(Map<String, dynamic> json) => PowerUp(
@@ -25,6 +27,7 @@ class PowerUp {
     multiplier: json['multiplier'],
     baseCost: json['cost'],
     purchaseCount: json['purchase_count'],
+    is_purchasable: json['is_purchasable'],
   );
 
   Map<String, dynamic> toMap() {
@@ -36,6 +39,7 @@ class PowerUp {
       'cost': baseCost,
       'multiplier': multiplier,
       'purchase_count': purchaseCount,
+      'is_purchasable': is_purchasable,
     };
   }
 }

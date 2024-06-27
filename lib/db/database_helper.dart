@@ -19,7 +19,7 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 3, onCreate: _createDB, onUpgrade: _upgradeDB);
+    return await openDatabase(path, version: 4, onCreate: _createDB, onUpgrade: _upgradeDB);
   }
 
   Future _createDB(Database db, int version) async {
@@ -40,6 +40,7 @@ class DatabaseHelper {
       cost DOUBLE NOT NULL,
       multiplier DOUBLE NOT NULL DEFAULT 1,
       purchase_count INTEGER NOT NULL DEFAULT 0
+      is_purchasable INTEGER NOT NULL DEFAULT 1
     )
     ''';
 
@@ -60,7 +61,8 @@ class DatabaseHelper {
         'value': 1,
         'multiplier': 1.3,
         'cost': 66.666666666666666666666666666667,
-        'purchase_count': 1,
+        'purchase_count': 0,
+        'is_purchasable': 1,
       };
 
       final powerUp2 = {
@@ -70,10 +72,44 @@ class DatabaseHelper {
         'multiplier': 1.2,
         'cost': 150,
         'purchase_count': 0,
+        'is_purchasable': 1,
+      };
+
+      final nonPurchasablePowerUp = {
+        'name': 'Daily Multiplier',
+        'type': 'multiplier',
+        'value': 1,
+        'cost': 0,
+        'purchase_count': 0,
+        'is_purchasable': 0,
       };
 
       await db.insert('powerups', powerUp1);
       await db.insert('powerups', powerUp2);
+      await db.insert('powerups', nonPurchasablePowerUp);
+    }
+  }
+
+  Future<int> updateLastSpinTime(int userId, int lastSpinTime) async {
+    final db = await instance.database;
+    return await db.insert(
+      'spins',
+      {'user_id': userId, 'last_spin_time': lastSpinTime},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<Map<String, dynamic>?> getLastSpinTime(int userId) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'spins',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
     }
   }
 
@@ -95,7 +131,6 @@ class DatabaseHelper {
     }
     return await db.update('users', row, where: 'id = ?', whereArgs: [id]);
   }
-
 
   Future<List<Map<String, dynamic>>> fetchPowerUps() async {
     final db = await instance.database;
