@@ -35,3 +35,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/alien.png
+    - assets/loading_screen.png
