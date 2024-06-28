@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:alien_chaos/models/powerup.dart';
 import 'package:flutter/material.dart';
 import 'package:shake/shake.dart';
 import '../helper/game_state.dart';
+import '../models/reward.dart';
 import '../models/user.dart';
 import '../utils/spin_wheel_widget.dart';
 
@@ -21,12 +23,14 @@ class _SpinWheelPageState extends State<SpinWheelPage> {
   String _result = '';
   late ShakeDetector _shakeDetector;
   final StreamController<int> controller = StreamController<int>();
+  late List<Reward> _rewards;
 
   @override
   void initState() {
     super.initState();
     _user = widget.gameState.user!;
-    _shakeDetector = ShakeDetector.autoStart(onPhoneShake: _extendSpin);
+    _shakeDetector = ShakeDetector.autoStart(onPhoneShake: _startSpinning);
+    _rewards = [];
   }
 
   @override
@@ -36,26 +40,61 @@ class _SpinWheelPageState extends State<SpinWheelPage> {
     super.dispose();
   }
 
-  void _onSpinComplete(String reward) async {
+  Future<Reward> setupReward(double multiplier) async {
+    return Reward(
+        name: (_user.aliens * multiplier).toString() + ' Aliens',
+        aliens: _user.aliens);
+  }
+
+  Future<Reward> setupPowerUpReward(PowerUp powerUp) async {
+    return Reward(
+        name: powerUp.name,
+        powerupId: powerUp.id);
+  }
+
+  static PowerUp randomPowerUp(List<PowerUp> powerUps) {
+    final randomIndex = Random().nextInt(powerUps.length);
+    return powerUps[randomIndex];
+  }
+
+  Future<List<Reward>> fetchRewards() async {
+    if(_rewards.length > 0){
+      _rewards.add(await setupReward(0.5));
+      _rewards.add(await setupReward(1.5));
+      _rewards.add(await setupReward(2));
+
+      var powerUps = await widget.gameState.fetchPowerUps();
+      _rewards.add(await setupPowerUpReward(powerUps.firstWhere((pu) => pu.id == 900)));
+
+      var purchasedPowerUp = powerUps.where((pu) => pu.purchaseCount >= 0).toList();
+      _rewards.add(await setupPowerUpReward(randomPowerUp(purchasedPowerUp)));
+      _rewards.add(await setupPowerUpReward(randomPowerUp(purchasedPowerUp)));
+      _rewards.add(await setupPowerUpReward(randomPowerUp(purchasedPowerUp)));
+    }
+    return _rewards;
+  }
+
+  void _onSpinComplete(Reward reward) async {
     setState(() {
-      _result = reward;
+      _result = reward.name;
       _isSpinning = false;
     });
 
     // Apply the reward
-    if (reward == 'Multiplier') {
-      await _applyMultiplier();
+    if (reward.powerupId != 0) {
+      await _applyPowerup(reward.powerupId);
     } else {
-      _user.aliens += 100; // Add 100 aliens as a reward
+      _user.aliens += reward.aliens;
       await widget.gameState.updateUser(_user.toMap());
     }
   }
 
-  Future<void> _applyMultiplier() async {
+  Future<void> _applyPowerup(int id) async {
     var powerUps = await widget.gameState.fetchPowerUps();
-    var multiplierPowerUp = powerUps.firstWhere((pu) => pu.name == 'Daily Multiplier');
-    multiplierPowerUp.purchaseCount += 1;
-    await widget.gameState.updatePowerUpPurchaseCount(multiplierPowerUp.id, multiplierPowerUp.purchaseCount);
+    var powerUp = powerUps.firstWhere((pu) => pu.id == id);
+    powerUp.purchaseCount += 1;
+    await widget.gameState
+        .updatePowerUpPurchaseCount(powerUp.id, powerUp.purchaseCount);
     await widget.gameState.updateUser(_user.toMap());
   }
 
@@ -64,30 +103,25 @@ class _SpinWheelPageState extends State<SpinWheelPage> {
     setState(() {
       _isSpinning = true;
     });
-    final randomValue = Random().nextInt(4);
+    final randomValue = Random().nextInt(_rewards.length);
     controller.add(randomValue);
-  }
-
-  void _extendSpin() {
-    if (_isSpinning) {
-      setState(() {
-        // Extend spin by increasing spin velocity or adding more spins
-        _result = 'Extended Spin!';
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Spin Wheel'),
+        title: Text('Spin Test'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SpinWheelWidget(onSpinComplete: _onSpinComplete, controller: controller),
+            SpinWheelWidget(
+              onSpinComplete: (reward) => _onSpinComplete(reward),
+              controller: controller,
+              fetchRewards: fetchRewards,
+            ),
             SizedBox(height: 20),
             Text('Result: $_result'),
             SizedBox(height: 20),

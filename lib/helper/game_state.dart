@@ -33,7 +33,7 @@ class GameState extends ChangeNotifier {
   Future<List<PowerUp>> fetchPowerUps() async {
     List<Map<String, dynamic>> powerUpData = await _dbHelper.fetchPowerUps();
     _powerUps = powerUpData.map((data) => PowerUp.fromMap(data)).toList();
-    notifyListeners(); // Notify listeners after fetching power-ups
+    notifyListeners();
     return _powerUps;
   }
 

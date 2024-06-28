@@ -1,3 +1,5 @@
+import 'dart:math';
+
 class PowerUp {
   final int id;
   final String name;

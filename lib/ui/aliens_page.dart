@@ -128,7 +128,7 @@ class _AliensPageState extends State<AliensPage> {
                     onTap: _incrementAliens,
                     child: CircleAvatar(
                       radius: 100,
-                      backgroundImage: AssetImage('assets/alien.png'),
+                      backgroundImage: AssetImage('assets/images/alien.png'), // Your round image asset
                     ),
                   ),
                   const SizedBox(height: 50),

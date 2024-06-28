@@ -56,6 +56,7 @@ class DatabaseHelper {
     final existingPowerUps = await db.query('powerups');
     if (existingPowerUps.isEmpty) {
       final powerUp1 = {
+        'id': 1,
         'name': 'Alien Crowder',
         'type': 'click',
         'value': 1,
@@ -66,6 +67,7 @@ class DatabaseHelper {
       };
 
       final powerUp2 = {
+        'id': 2,
         'name': 'Alien Magnet',
         'type': 'second',
         'value': 1,
@@ -76,6 +78,7 @@ class DatabaseHelper {
       };
 
       final nonPurchasablePowerUp = {
+        'id': 900,
         'name': 'Daily Multiplier',
         'type': 'multiplier',
         'value': 1,
